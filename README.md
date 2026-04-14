@@ -4,7 +4,7 @@ Dieses Repository enthält einen produktiven Startpunkt für **BrainDump v3.1** 
 
 - **FastAPI REST API** (Dump, Retrieve, Decision, Chat)
 - **SQLite (WAL) als performanter Core Store**
-- **Vanilla HTML/CSS/JS UI** für schnelle Bedienung ohne Framework-Overhead
+- **Vanilla HTML/CSS/JS UI** im modernen Glassmorphism-Look ohne Framework-Overhead
 - **OpenAI-kompatible Chat-Integration** mit 4 Modellprofilen
 
 ## Modellprofile
@@ -19,6 +19,13 @@ Die UI und API unterstützen vier Profile:
 Die realen Modell-IDs sind per Env konfigurierbar.
 
 ## Verbesserungen gegenüber initialem Slice
+
+
+## UI Design
+
+- modernes, responsives Dashboard-Layout mit Sidebar + Workspace
+- CI-Farbtokens als CSS-Variablen aus dem bereitgestellten Variablenkatalog
+- Toast-Feedback statt Browser-Alerts für bessere UX
 
 - Tenant-Isolation über `X-Tenant-Id` Header bei Memory- und Decision-Endpunkten
 - Retrieval-Re-Ranking mit log-linearem Memory Score (Relevanz, Recency, Usage, Confidence, Trust)
