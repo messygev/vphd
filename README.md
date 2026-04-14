@@ -58,6 +58,27 @@ export MODEL_ENTERPRISE="gpt-5.4"
 export BRAIN_DB_PATH="braindump.db"
 ```
 
+## Docker Auslieferung
+
+### Build & Run (Docker)
+
+```bash
+docker build -t braindump-web:latest .
+docker run --rm -p 8000:8000 \
+  -e OPENAI_API_KEY="<dein-key>" \
+  -e BRAIN_DB_PATH="/data/braindump.db" \
+  -v $(pwd)/.data:/data \
+  braindump-web:latest
+```
+
+### Compose (empfohlen)
+
+```bash
+docker compose -f docker-compose.yaml up --build
+```
+
+Damit läuft die App auf `http://localhost:8000` und die SQLite-Datei wird im Volume `braindump_data` persistiert.
+
 ## REST API Übersicht
 
 - `GET /healthz` – Service Health
