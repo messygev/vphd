@@ -9,6 +9,13 @@
   <body>
     <main class="container">
       <h1>BrainDump v3.1 – Cognitive Memory UI</h1>
+
+      <section class="card">
+        <h2>Tenant Kontext</h2>
+        <label for="tenant-id">X-Tenant-Id</label>
+        <input id="tenant-id" value="default" placeholder="tenant-a" />
+      </section>
+
       <section class="card">
         <h2>Chat über OpenAI-kompatible API</h2>
         <form id="chat-form">
@@ -30,6 +37,7 @@
         <form id="dump-form">
           <input id="dump-type" placeholder="type (z.B. interaction)" required />
           <input id="dump-layer" placeholder="layer (z.B. dumps)" required />
+          <input id="dump-confidence" type="number" min="0" max="1" step="0.01" value="0.5" required />
           <textarea id="dump-content" placeholder="Rohes Event" required></textarea>
           <button type="submit">In Dump schreiben</button>
         </form>

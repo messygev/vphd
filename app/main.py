@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Request
+import time
+
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.config import MODEL_PROFILES, get_settings
 from app.core.llm_client import OpenAICompatibleClient
+from app.core.scoring import compute_memory_score
 from app.core.storage import SQLiteStore
 from app.schemas import (
     ChatRequest,
@@ -23,7 +26,7 @@ settings = get_settings()
 store = SQLiteStore(settings.db_path)
 llm = OpenAICompatibleClient(settings)
 
-app = FastAPI(title="BrainDump API", version="0.1.0")
+app = FastAPI(title="BrainDump API", version="0.2.0")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
@@ -31,6 +34,11 @@ templates = Jinja2Templates(directory="app/templates")
 @app.on_event("startup")
 def startup() -> None:
     store.init_schema()
+
+
+@app.get("/healthz")
+def healthcheck():
+    return {"status": "ok", "ts": int(time.time())}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -48,23 +56,47 @@ def list_models():
 
 
 @app.post("/api/dump", response_model=DumpResponse)
-def dump_memory(payload: DumpRequest):
-    event_id = store.insert_event(payload.type, payload.layer, payload.content, payload.source, payload.trust)
+def dump_memory(payload: DumpRequest, x_tenant_id: str = Header(default="default")):
+    event_id = store.insert_event(
+        tenant_id=x_tenant_id,
+        event_type=payload.type,
+        layer=payload.layer,
+        content=payload.content,
+        source=payload.source,
+        trust=payload.trust,
+        confidence=payload.confidence,
+        metadata=payload.metadata,
+    )
     return DumpResponse(id=event_id, status="stored")
 
 
 @app.post("/api/retrieve", response_model=RetrieveResponse)
-def retrieve(payload: RetrieveRequest):
+def retrieve(payload: RetrieveRequest, x_tenant_id: str = Header(default="default")):
     try:
-        rows = store.search_events(payload.query, payload.k)
+        rows = store.search_events(tenant_id=x_tenant_id, query=payload.query, limit=payload.k)
+        now = int(time.time())
+        scored = []
+        for row in rows:
+            age_days = max((now - row["ts"]) / 86400.0, 0.0)
+            lexical_relevance = 1.0 / (abs(row.get("lexical_rank", 0.0)) + 1.0)
+            row["score"] = compute_memory_score(
+                relevance=lexical_relevance,
+                recency_days=age_days,
+                usage=row["usage_count"] + 1,
+                confidence=row["confidence"],
+                trust=row["trust"],
+            )
+            scored.append(row)
+        ranked = sorted(scored, key=lambda item: item["score"], reverse=True)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Retrieve failed: {exc}") from exc
-    return RetrieveResponse(results=rows)
+    return RetrieveResponse(results=ranked)
 
 
 @app.post("/api/decisions", response_model=DecisionResponse)
-def record_decision(payload: DecisionRequest):
+def record_decision(payload: DecisionRequest, x_tenant_id: str = Header(default="default")):
     decision_id = store.insert_decision(
+        tenant_id=x_tenant_id,
         context=payload.context,
         action=payload.action,
         outcome=payload.outcome,

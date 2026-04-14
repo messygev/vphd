@@ -11,6 +11,8 @@ class DumpRequest(BaseModel):
     content: str
     source: str | None = None
     trust: float = Field(default=1.0, ge=0.0, le=1.0)
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    metadata: dict[str, Any] | None = None
 
 
 class DumpResponse(BaseModel):
@@ -28,6 +30,9 @@ class MemoryResult(BaseModel):
     content: str
     ts: int
     trust: float
+    confidence: float
+    usage_count: int
+    score: float
 
 
 class RetrieveResponse(BaseModel):

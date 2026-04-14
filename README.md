@@ -18,6 +18,13 @@ Die UI und API unterstützen vier Profile:
 
 Die realen Modell-IDs sind per Env konfigurierbar.
 
+## Verbesserungen gegenüber initialem Slice
+
+- Tenant-Isolation über `X-Tenant-Id` Header bei Memory- und Decision-Endpunkten
+- Retrieval-Re-Ranking mit log-linearem Memory Score (Relevanz, Recency, Usage, Confidence, Trust)
+- Nutzungstracking (`usage_count`) direkt im Event-Store
+- Healthcheck Endpoint `/healthz`
+
 ## Schnellstart
 
 ```bash
@@ -46,16 +53,18 @@ export BRAIN_DB_PATH="braindump.db"
 
 ## REST API Übersicht
 
+- `GET /healthz` – Service Health
 - `GET /api/models` – verfügbare Modellprofile
-- `POST /api/dump` – rohen Event speichern
-- `POST /api/retrieve` – FTS5-basierte Suche
-- `POST /api/decisions` – Decision Event speichern
+- `POST /api/dump` – rohen Event speichern (`X-Tenant-Id`)
+- `POST /api/retrieve` – FTS5 + Score Ranking (`X-Tenant-Id`)
+- `POST /api/decisions` – Decision Event speichern (`X-Tenant-Id`)
 - `POST /api/chat` – Chat Completion via OpenAI-kompatibler API
 
 ## Qualitäts-/Performance-Basics im MVP
 
 - SQLite im **WAL-Modus** + `busy_timeout`
 - FTS5 für schnelle Lexical Retrievals
+- Ranking mit Score-Heuristik (`app/core/scoring.py`)
 - klare Schema-/Service-Trennung (`config`, `storage`, `llm_client`, `schemas`)
 - API Contract via Pydantic
 - Smoke-Tests für Kernfluss

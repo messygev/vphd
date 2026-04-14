@@ -4,6 +4,11 @@ const retrieveForm = document.getElementById('retrieve-form');
 const chatOutput = document.getElementById('chat-output');
 const results = document.getElementById('results');
 
+function tenantHeader() {
+  const tenantId = document.getElementById('tenant-id').value || 'default';
+  return { 'X-Tenant-Id': tenantId };
+}
+
 chatForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   chatOutput.textContent = 'Lädt ...';
@@ -15,7 +20,7 @@ chatForm.addEventListener('submit', async (event) => {
 
   const response = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...tenantHeader() },
     body: JSON.stringify(payload),
   });
 
@@ -32,10 +37,12 @@ dumpForm.addEventListener('submit', async (event) => {
     layer: document.getElementById('dump-layer').value,
     content: document.getElementById('dump-content').value,
     trust: 1.0,
+    confidence: Number(document.getElementById('dump-confidence').value),
+    metadata: { ui: 'vanilla-web' },
   };
   const response = await fetch('/api/dump', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...tenantHeader() },
     body: JSON.stringify(payload),
   });
   const data = await response.json();
@@ -48,7 +55,7 @@ retrieveForm.addEventListener('submit', async (event) => {
   const payload = { query: document.getElementById('query').value, k: 10 };
   const response = await fetch('/api/retrieve', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...tenantHeader() },
     body: JSON.stringify(payload),
   });
   const data = await response.json();
@@ -58,7 +65,7 @@ retrieveForm.addEventListener('submit', async (event) => {
   }
   data.results.forEach((row) => {
     const item = document.createElement('li');
-    item.textContent = `[${new Date(row.ts * 1000).toISOString()}] ${row.content}`;
+    item.textContent = `[score=${row.score.toFixed(4)}][${new Date(row.ts * 1000).toISOString()}] ${row.content}`;
     results.appendChild(item);
   });
 });
