@@ -14,8 +14,17 @@ services:
       MODEL_MID: ${MODEL_MID:-gpt-oss-120b}
       MODEL_ENTERPRISE: ${MODEL_ENTERPRISE:-gpt-5.4}
       BRAIN_DB_PATH: /data/braindump.db
+      APP_API_KEY: ${APP_API_KEY:-dev-api-key}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:8000}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
     volumes:
       - braindump_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
 volumes:

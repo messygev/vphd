@@ -5,9 +5,10 @@ const chatOutput = document.getElementById('chat-output');
 const results = document.getElementById('results');
 const toast = document.getElementById('toast');
 
-function tenantHeader() {
+function runtimeHeaders() {
   const tenantId = document.getElementById('tenant-id').value || 'default';
-  return { 'X-Tenant-Id': tenantId };
+  const apiKey = document.getElementById('api-key').value || '';
+  return { 'X-Tenant-Id': tenantId, 'X-API-Key': apiKey };
 }
 
 function showToast(message, isError = false) {
@@ -36,7 +37,7 @@ chatForm.addEventListener('submit', async (event) => {
 
   const response = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...tenantHeader() },
+    headers: { 'Content-Type': 'application/json', ...runtimeHeaders() },
     body: JSON.stringify(payload),
   });
 
@@ -63,7 +64,7 @@ dumpForm.addEventListener('submit', async (event) => {
   };
   const response = await fetch('/api/dump', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...tenantHeader() },
+    headers: { 'Content-Type': 'application/json', ...runtimeHeaders() },
     body: JSON.stringify(payload),
   });
   const data = await safeJson(response);
@@ -80,7 +81,7 @@ retrieveForm.addEventListener('submit', async (event) => {
   const payload = { query: document.getElementById('query').value, k: 10 };
   const response = await fetch('/api/retrieve', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...tenantHeader() },
+    headers: { 'Content-Type': 'application/json', ...runtimeHeaders() },
     body: JSON.stringify(payload),
   });
   const data = await safeJson(response);

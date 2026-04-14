@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import time
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.config import MODEL_PROFILES, get_settings
 from app.core.llm_client import OpenAICompatibleClient
+from app.core.rate_limit import InMemoryRateLimiter
 from app.core.scoring import compute_memory_score
 from app.core.storage import SQLiteStore
 from app.schemas import (
@@ -25,8 +27,16 @@ from app.schemas import (
 settings = get_settings()
 store = SQLiteStore(settings.db_path)
 llm = OpenAICompatibleClient(settings)
+rate_limiter = InMemoryRateLimiter(settings.rate_limit_per_minute)
 
-app = FastAPI(title="BrainDump API", version="0.2.0")
+app = FastAPI(title="BrainDump API", version="0.3.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(settings.cors_allow_origins),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Tenant-Id", "X-API-Key"],
+)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
@@ -34,6 +44,19 @@ templates = Jinja2Templates(directory="app/templates")
 @app.on_event("startup")
 def startup() -> None:
     store.init_schema()
+
+
+def require_api_key(x_api_key: str = Header(default="")) -> None:
+    if x_api_key != settings.app_api_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+
+def enforce_rate_limit(
+    request: Request,
+    x_tenant_id: str = Header(default="default"),
+) -> None:
+    key = f"{x_tenant_id}:{request.client.host if request.client else 'unknown'}"
+    rate_limiter.check(key)
 
 
 @app.get("/healthz")
@@ -46,16 +69,19 @@ def home(request: Request):
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"models": [profile.__dict__ for profile in MODEL_PROFILES.values()]},
+        {
+            "models": [profile.__dict__ for profile in MODEL_PROFILES.values()],
+            "default_api_key": settings.app_api_key,
+        },
     )
 
 
-@app.get("/api/models")
+@app.get("/api/models", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 def list_models():
     return {"models": [profile.__dict__ for profile in MODEL_PROFILES.values()]}
 
 
-@app.post("/api/dump", response_model=DumpResponse)
+@app.post("/api/dump", response_model=DumpResponse, dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 def dump_memory(payload: DumpRequest, x_tenant_id: str = Header(default="default")):
     event_id = store.insert_event(
         tenant_id=x_tenant_id,
@@ -70,7 +96,11 @@ def dump_memory(payload: DumpRequest, x_tenant_id: str = Header(default="default
     return DumpResponse(id=event_id, status="stored")
 
 
-@app.post("/api/retrieve", response_model=RetrieveResponse)
+@app.post(
+    "/api/retrieve",
+    response_model=RetrieveResponse,
+    dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)],
+)
 def retrieve(payload: RetrieveRequest, x_tenant_id: str = Header(default="default")):
     try:
         rows = store.search_events(tenant_id=x_tenant_id, query=payload.query, limit=payload.k)
@@ -93,7 +123,11 @@ def retrieve(payload: RetrieveRequest, x_tenant_id: str = Header(default="defaul
     return RetrieveResponse(results=ranked)
 
 
-@app.post("/api/decisions", response_model=DecisionResponse)
+@app.post(
+    "/api/decisions",
+    response_model=DecisionResponse,
+    dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)],
+)
 def record_decision(payload: DecisionRequest, x_tenant_id: str = Header(default="default")):
     decision_id = store.insert_decision(
         tenant_id=x_tenant_id,
@@ -107,7 +141,7 @@ def record_decision(payload: DecisionRequest, x_tenant_id: str = Header(default=
     return DecisionResponse(id=decision_id, status="recorded")
 
 
-@app.post("/api/chat", response_model=ChatResponse)
+@app.post("/api/chat", response_model=ChatResponse, dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def chat(payload: ChatRequest):
     try:
         result = await llm.chat(payload.model_profile, payload.prompt, payload.temperature)

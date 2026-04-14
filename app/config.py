@@ -18,6 +18,9 @@ class Settings:
     openai_base_url: str
     openai_api_key: str
     request_timeout_seconds: float
+    app_api_key: str
+    cors_allow_origins: tuple[str, ...]
+    rate_limit_per_minute: int
 
 
 MODEL_PROFILES: dict[str, ModelProfile] = {
@@ -48,10 +51,18 @@ MODEL_PROFILES: dict[str, ModelProfile] = {
 }
 
 
+def _parse_origins(raw: str) -> tuple[str, ...]:
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return tuple(origins) if origins else ("http://localhost:8000",)
+
+
 def get_settings() -> Settings:
     return Settings(
         db_path=os.getenv("BRAIN_DB_PATH", "braindump.db"),
         openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT", "20")),
+        app_api_key=os.getenv("APP_API_KEY", "dev-api-key"),
+        cors_allow_origins=_parse_origins(os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:8000")),
+        rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
     )

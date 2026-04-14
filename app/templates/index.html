@@ -30,6 +30,9 @@
           <label for="tenant-id">X-Tenant-Id</label>
           <input id="tenant-id" value="default" placeholder="tenant-a" />
 
+          <label for="api-key">X-API-Key</label>
+          <input id="api-key" value="{{ default_api_key }}" placeholder="API key" />
+
           <label for="model">Modellprofil</label>
           <select id="model" name="model">
             {% for model in models %}

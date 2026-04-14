@@ -32,6 +32,12 @@ Die realen Modell-IDs sind per Env konfigurierbar.
 - Nutzungstracking (`usage_count`) direkt im Event-Store
 - Healthcheck Endpoint `/healthz`
 
+## P0 Security & Runtime Hardening
+
+- API-Endpunkte unter `/api/*` sind jetzt mit `X-API-Key` geschützt (Default: `dev-api-key`, per `APP_API_KEY` überschreibbar).
+- In-Memory Rate-Limit pro `tenant + client` (Default: 60 Requests/Minute, `RATE_LIMIT_PER_MINUTE`).
+- CORS ist konfigurierbar via `CORS_ALLOW_ORIGINS`.
+
 ## Schnellstart
 
 ```bash
@@ -56,6 +62,9 @@ export MODEL_FAST="fast-3b"
 export MODEL_MID="gpt-oss-120b"
 export MODEL_ENTERPRISE="gpt-5.4"
 export BRAIN_DB_PATH="braindump.db"
+export APP_API_KEY="dev-api-key"
+export RATE_LIMIT_PER_MINUTE="60"
+export CORS_ALLOW_ORIGINS="http://localhost:8000"
 ```
 
 ## Docker Auslieferung
@@ -81,6 +90,8 @@ Damit läuft die App auf `http://localhost:8000` und die SQLite-Datei wird im Vo
 
 ## REST API Übersicht
 
+Alle `/api/*` Requests benötigen Header: `X-API-Key: <dein-key>`.
+
 - `GET /healthz` – Service Health
 - `GET /api/models` – verfügbare Modellprofile
 - `POST /api/dump` – rohen Event speichern (`X-Tenant-Id`)
@@ -96,3 +107,7 @@ Damit läuft die App auf `http://localhost:8000` und die SQLite-Datei wird im Vo
 - klare Schema-/Service-Trennung (`config`, `storage`, `llm_client`, `schemas`)
 - API Contract via Pydantic
 - Smoke-Tests für Kernfluss
+
+## CI
+
+GitHub Actions Workflow unter `.github/workflows/ci.yml` installiert Abhängigkeiten und führt `pytest -q` bei Push/PR aus.
