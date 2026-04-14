@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BrainDump v3.1</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>BrainDump v3.1 – Cognitive Memory UI</h1>
+      <section class="card">
+        <h2>Chat über OpenAI-kompatible API</h2>
+        <form id="chat-form">
+          <label for="model">Modellprofil</label>
+          <select id="model" name="model">
+            {% for model in models %}
+            <option value="{{ model.key }}">{{ model.label }} — {{ model.description }}</option>
+            {% endfor %}
+          </select>
+          <label for="prompt">Prompt</label>
+          <textarea id="prompt" required placeholder="Was soll der Agent tun?"></textarea>
+          <button type="submit">Senden</button>
+        </form>
+        <pre id="chat-output"></pre>
+      </section>
+
+      <section class="card">
+        <h2>Dump Event</h2>
+        <form id="dump-form">
+          <input id="dump-type" placeholder="type (z.B. interaction)" required />
+          <input id="dump-layer" placeholder="layer (z.B. dumps)" required />
+          <textarea id="dump-content" placeholder="Rohes Event" required></textarea>
+          <button type="submit">In Dump schreiben</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Retrieve</h2>
+        <form id="retrieve-form">
+          <input id="query" placeholder="Suchbegriff" required />
+          <button type="submit">Suchen</button>
+        </form>
+        <ul id="results"></ul>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
