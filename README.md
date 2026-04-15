@@ -122,6 +122,7 @@ Alle `/api/*` Requests benötigen Header: `X-API-Key: <dein-key>`.
 - klare Schema-/Service-Trennung (`config`, `storage`, `llm_client`, `schemas`)
 - API Contract via Pydantic
 - Smoke-Tests für Kernfluss
+- API-Tests werden automatisch geskippt, falls `fastapi` lokal nicht installiert ist (z. B. Minimal-Runner).
 
 ## CI
 
