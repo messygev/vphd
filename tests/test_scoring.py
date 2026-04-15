@@ -1,4 +1,4 @@
-from app.core.scoring import compute_memory_score
+from app.core.scoring import compute_memory_score, reciprocal_rank_fusion
 
 
 def test_score_increases_with_confidence():
@@ -35,3 +35,14 @@ def test_score_decreases_with_age():
         trust=1.0,
     )
     assert recent > old
+
+
+def test_rrf_prefers_items_appearing_in_multiple_lists():
+    fused = reciprocal_rank_fusion(
+        [
+            ["a", "b", "c"],
+            ["b", "d", "a"],
+        ],
+        k=60,
+    )
+    assert fused["b"] > fused["c"]

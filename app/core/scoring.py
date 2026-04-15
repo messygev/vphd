@@ -31,3 +31,11 @@ def compute_memory_score(
         + w_trust * math.log(max(trust, 0.0) + epsilon)
     )
     return math.exp(log_score)
+
+
+def reciprocal_rank_fusion(rank_lists: list[list[str]], k: int = 60) -> dict[str, float]:
+    fused: dict[str, float] = {}
+    for rank_list in rank_lists:
+        for position, item_id in enumerate(rank_list, start=1):
+            fused[item_id] = fused.get(item_id, 0.0) + 1.0 / (k + position)
+    return fused

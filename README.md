@@ -45,6 +45,12 @@ Die realen Modell-IDs sind per Env konfigurierbar.
 - Decision-Memory aktualisiert Policy-Statistiken (Bayes-ähnlich über α/β).
 - Retrieval nutzt zusätzlich ein Decision-Signal als leichter Fusion-Boost.
 
+## P2 Retrieval Fusion
+
+- Retrieval kombiniert jetzt Lexical-Treffer und Graph-Nachbarschaft über `entities`/`relations`.
+- Fusion-Ranking erfolgt über Reciprocal Rank Fusion (RRF) + Memory Score.
+- Decision-Signal bleibt als zusätzlicher Boost aktiv.
+
 ## Schnellstart
 
 ```bash

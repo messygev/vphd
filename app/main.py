@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from app.config import MODEL_PROFILES, get_settings
 from app.core.llm_client import OpenAICompatibleClient
 from app.core.rate_limit import InMemoryRateLimiter
-from app.core.scoring import compute_memory_score
+from app.core.scoring import compute_memory_score, reciprocal_rank_fusion
 from app.core.storage import SQLiteStore
 from app.schemas import (
     BeliefRequest,
@@ -106,11 +106,20 @@ def dump_memory(payload: DumpRequest, x_tenant_id: str = Header(default="default
 )
 def retrieve(payload: RetrieveRequest, x_tenant_id: str = Header(default="default")):
     try:
-        rows = store.search_events(tenant_id=x_tenant_id, query=payload.query, limit=payload.k)
+        lexical_rows = store.search_events(tenant_id=x_tenant_id, query=payload.query, limit=payload.k * 3)
+        graph_rows = store.search_graph_events(tenant_id=x_tenant_id, query=payload.query, limit=payload.k * 3)
+
+        lexical_ids = [row["id"] for row in lexical_rows]
+        graph_ids = [row["id"] for row in graph_rows]
+        rrf_scores = reciprocal_rank_fusion([lexical_ids, graph_ids], k=60)
+
+        merged = {row["id"]: row for row in graph_rows}
+        merged.update({row["id"]: row for row in lexical_rows})
+
         decision_signal = store.decision_signal(tenant_id=x_tenant_id, query=payload.query)
         now = int(time.time())
         scored = []
-        for row in rows:
+        for row_id, row in merged.items():
             age_days = max((now - row["ts"]) / 86400.0, 0.0)
             lexical_relevance = 1.0 / (abs(row.get("lexical_rank", 0.0)) + 1.0)
             base_score = compute_memory_score(
@@ -120,9 +129,11 @@ def retrieve(payload: RetrieveRequest, x_tenant_id: str = Header(default="defaul
                 confidence=row["confidence"],
                 trust=row["trust"],
             )
-            row["score"] = base_score * (1 + max(decision_signal, 0.0) * 0.15)
+            rrf_boost = 1 + rrf_scores.get(row_id, 0.0) * 5.0
+            decision_boost = 1 + max(decision_signal, 0.0) * 0.15
+            row["score"] = base_score * rrf_boost * decision_boost
             scored.append(row)
-        ranked = sorted(scored, key=lambda item: item["score"], reverse=True)
+        ranked = sorted(scored, key=lambda item: item["score"], reverse=True)[: payload.k]
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Retrieve failed: {exc}") from exc
     return RetrieveResponse(results=ranked)
