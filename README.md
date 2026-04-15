@@ -38,6 +38,13 @@ Die realen Modell-IDs sind per Env konfigurierbar.
 - In-Memory Rate-Limit pro `tenant + client` (Default: 60 Requests/Minute, `RATE_LIMIT_PER_MINUTE`).
 - CORS ist konfigurierbar via `CORS_ALLOW_ORIGINS`.
 
+## P1 Learning & Knowledge Layer
+
+- Schema erweitert um `beliefs`, `policies`, `entities`, `relations`, `snapshots`.
+- Neue API-Endpunkte: `POST /api/beliefs`, `GET /api/policies`.
+- Decision-Memory aktualisiert Policy-Statistiken (Bayes-ähnlich über α/β).
+- Retrieval nutzt zusätzlich ein Decision-Signal als leichter Fusion-Boost.
+
 ## Schnellstart
 
 ```bash
@@ -98,6 +105,8 @@ Alle `/api/*` Requests benötigen Header: `X-API-Key: <dein-key>`.
 - `POST /api/retrieve` – FTS5 + Score Ranking (`X-Tenant-Id`)
 - `POST /api/decisions` – Decision Event speichern (`X-Tenant-Id`)
 - `POST /api/chat` – Chat Completion via OpenAI-kompatibler API
+- `POST /api/beliefs` – Belief upsert (alpha/beta confidence)
+- `GET /api/policies` – Policy-Statistiken (success_rate, alpha, beta)
 
 ## Qualitäts-/Performance-Basics im MVP
 

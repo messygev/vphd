@@ -1,8 +1,11 @@
 const chatForm = document.getElementById('chat-form');
 const dumpForm = document.getElementById('dump-form');
 const retrieveForm = document.getElementById('retrieve-form');
+const beliefForm = document.getElementById('belief-form');
+const loadPoliciesButton = document.getElementById('load-policies');
 const chatOutput = document.getElementById('chat-output');
 const results = document.getElementById('results');
+const policies = document.getElementById('policies');
 const toast = document.getElementById('toast');
 
 function runtimeHeaders() {
@@ -102,4 +105,49 @@ retrieveForm.addEventListener('submit', async (event) => {
     results.appendChild(item);
   });
   showToast(`${data.results.length} Treffer geladen`);
+});
+
+beliefForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const payload = {
+    statement: document.getElementById('belief-statement').value,
+    reinforce: true,
+    contradict: false,
+  };
+  const response = await fetch('/api/beliefs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...runtimeHeaders() },
+    body: JSON.stringify(payload),
+  });
+  const data = await safeJson(response);
+  if (!response.ok) {
+    showToast(`Belief fehlgeschlagen: ${data.detail}`, true);
+    return;
+  }
+  showToast(`Belief gespeichert (confidence=${data.confidence.toFixed(2)})`);
+});
+
+loadPoliciesButton.addEventListener('click', async () => {
+  policies.innerHTML = '';
+  const response = await fetch('/api/policies', {
+    method: 'GET',
+    headers: { ...runtimeHeaders() },
+  });
+  const data = await safeJson(response);
+  if (!response.ok) {
+    policies.innerHTML = `<li>Fehler: ${data.detail}</li>`;
+    showToast('Policies laden fehlgeschlagen', true);
+    return;
+  }
+
+  if (!data.policies.length) {
+    policies.innerHTML = '<li>Keine Policy-Statistiken vorhanden.</li>';
+    return;
+  }
+
+  data.policies.forEach((policy) => {
+    const item = document.createElement('li');
+    item.textContent = `${policy.name}: success=${policy.success_rate.toFixed(2)} (α=${policy.alpha}, β=${policy.beta})`;
+    policies.appendChild(item);
+  });
 });

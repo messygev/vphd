@@ -58,8 +58,33 @@ class DecisionRequest(BaseModel):
     reward: float = 0.0
     propensity: float = Field(default=1.0, gt=0.0, le=1.0)
     counterfactual_regret: float = 0.0
+    policy_name: str | None = None
 
 
 class DecisionResponse(BaseModel):
     id: str
     status: str
+
+
+class BeliefRequest(BaseModel):
+    statement: str
+    reinforce: bool = True
+    contradict: bool = False
+
+
+class BeliefResponse(BaseModel):
+    statement: str
+    alpha: int
+    beta: int
+    confidence: float
+
+
+class PolicyStat(BaseModel):
+    name: str
+    success_rate: float
+    alpha: int
+    beta: int
+
+
+class PolicyResponse(BaseModel):
+    policies: list[PolicyStat]

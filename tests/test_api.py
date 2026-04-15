@@ -32,6 +32,22 @@ def test_dump_and_retrieve_flow():
     dump_response = client.post('/api/dump', json=dump_payload, headers=API_HEADERS)
     assert dump_response.status_code == 200
 
+    decision_payload = {
+        'context': 'capture first strategy',
+        'action': 'use dump first',
+        'reward': 0.9,
+        'policy_name': 'capture_first_policy',
+    }
+    decision_response = client.post('/api/decisions', json=decision_payload, headers=API_HEADERS)
+    assert decision_response.status_code == 200
+
+    belief_response = client.post('/api/beliefs', json={'statement': 'capture first', 'reinforce': True}, headers=API_HEADERS)
+    assert belief_response.status_code == 200
+
+    policy_response = client.get('/api/policies', headers=API_HEADERS)
+    assert policy_response.status_code == 200
+    assert len(policy_response.json()['policies']) >= 1
+
     retrieve_response = client.post('/api/retrieve', json={'query': 'capture', 'k': 5}, headers=API_HEADERS)
     assert retrieve_response.status_code == 200
     assert len(retrieve_response.json()['results']) >= 1
